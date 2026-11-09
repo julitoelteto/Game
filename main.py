@@ -22,6 +22,13 @@ except Exception as e:
 reloj = pygame.time.Clock()
 Vec = pygame.math.Vector2
 
+# --- ESCALA GENERAL DE LOS PERSONAJES ---
+ESCALA = 1.7    # <-- Cambia este número para agrandar o achicar jugador, aliens, ovnis y arma
+PIES_Y = 550    # Línea del suelo: aquí apoyan los pies todos los personajes
+
+def esc(valor):
+    return int(round(valor * ESCALA))
+
 # --- CARGA DE ASSETS (Imágenes y Respaldo) ---
 def cargar_imagen(nombre_archivo, ancho, alto, color_fallback=(0, 255, 0)):
     try:
@@ -44,26 +51,28 @@ def cargar_sonido(nombre_archivo, volumen=0.5):
 
 # Carga de Portada y Sprites principales
 fondo_portada = cargar_imagen("FondoPortada.jpg", ANCHO, ALTO, (20, 20, 40))
-img_jugador = cargar_imagen("jugador.png", 40, 50, (0, 200, 255))
-img_enemigo_aire = cargar_imagen("disparador_enemigo.png", 45, 45, (255, 50, 50))
-img_alien = cargar_imagen("alien.png", 45, 50, (50, 255, 50)) # Alienígena caminante
-BOSS_W, BOSS_H = 160, 200
+img_jugador = cargar_imagen("jugador.png", esc(40), esc(50), (0, 200, 255))
+img_enemigo_aire = cargar_imagen("disparador_enemigo.png", esc(45), esc(45), (255, 50, 50))
+img_alien = cargar_imagen("alien.png", esc(45), esc(50), (50, 255, 50)) # Alienígena caminante
+BOSS_W, BOSS_H = 200, 250
 img_boss = cargar_imagen("boss.png", BOSS_W, BOSS_H, (180, 0, 0))
-img_bala_enemiga = cargar_imagen("bala_enemigo.png", 10, 10, (255, 255, 0))
-img_item_arma = cargar_imagen("arma_pickup.png", 30, 30, (0, 255, 100))
-img_bala_jugador = cargar_imagen("bala_jugador.png", 12, 12, (0, 255, 255))
+img_bala_enemiga = cargar_imagen("bala_enemigo.png", 14, 14, (255, 255, 0))
+ITEM_S = 42   # Tamaño de las armas/munición del suelo
+img_item_arma = cargar_imagen("arma_pickup.png", ITEM_S, ITEM_S, (0, 255, 100))
+img_bala_jugador = cargar_imagen("bala_jugador.png", 16, 16, (0, 255, 255))
 
 # --- CARGA DEL CASTILLO / REFUGIO CON TRANSPARENCIA AUTOMÁTICA ---
+REFUGIO_W, REFUGIO_H = 360, 230
 try:
     img_refugio = pygame.image.load("refugio.png").convert_alpha()
-    img_refugio = pygame.transform.scale(img_refugio, (280, 180))
+    img_refugio = pygame.transform.scale(img_refugio, (REFUGIO_W, REFUGIO_H))
     for x in range(img_refugio.get_width()):
         for y in range(img_refugio.get_height()):
             c = img_refugio.get_at((x, y))
             if abs(c.r - c.g) < 10 and abs(c.g - c.b) < 10 and c.r > 110:
                 img_refugio.set_at((x, y), (0, 0, 0, 0))
 except:
-    img_refugio = pygame.Surface((280, 180))
+    img_refugio = pygame.Surface((REFUGIO_W, REFUGIO_H))
     img_refugio.fill((0, 255, 150))
 
 # --- CARGA DE FONDOS PROGRESIVOS ---
@@ -100,8 +109,8 @@ fuente_pausa = pygame.font.SysFont("Arial", 48, bold=True)
 SPRITE_MIRA = 1
 JUG_W, JUG_H = img_jugador.get_size()
 CADERA_Y = int(JUG_H * 0.58)
-HOMBRO_Y = 22
-MARGEN_X, MARGEN_ARR, MARGEN_ABA = 10, 6, 4
+HOMBRO_Y = int(JUG_H * 0.44)   # Altura del hombro (de donde sale el brazo)
+MARGEN_X, MARGEN_ARR, MARGEN_ABA = esc(14), esc(6), esc(4)
 N_FRAMES = 8
 
 def rotar_pivote(surf, angulo, pivote, pos):
@@ -147,11 +156,11 @@ def crear_ciclo(amplitud, lift, rebote):
 def rebote_frame(i, rebote):
     return round(-(1 - abs(math.sin(2 * math.pi * i / N_FRAMES))) * rebote)
 
-REBOTE_CAMINAR, REBOTE_CORRER = 2, 3
-frames_caminar = crear_ciclo(24, 3, REBOTE_CAMINAR)
-frames_correr = crear_ciclo(36, 5, REBOTE_CORRER)
+REBOTE_CAMINAR, REBOTE_CORRER = esc(2), esc(3)
+frames_caminar = crear_ciclo(24, esc(3), REBOTE_CAMINAR)
+frames_correr = crear_ciclo(36, esc(5), REBOTE_CORRER)
 frame_quieto = generar_frame_jugador(0, 0, 0, 0, 0)
-frame_salto = generar_frame_jugador(20, 4, 4, 0, 0)
+frame_salto = generar_frame_jugador(20, esc(4), esc(4), 0, 0)
 BASE_Y_LIENZO = JUG_H + MARGEN_ARR
 
 def color_promedio(img, rect, defecto=(60, 60, 70)):
@@ -165,7 +174,7 @@ def color_promedio(img, rect, defecto=(60, 60, 70)):
         return defecto
     return (int(r / n * 0.85), int(g / n * 0.85), int(b / n * 0.85))
 
-color_brazo = color_promedio(img_jugador, pygame.Rect(8, max(0, CADERA_Y - 12), JUG_W - 16, 12))
+color_brazo = color_promedio(img_jugador, pygame.Rect(JUG_W // 5, max(0, CADERA_Y - JUG_H // 4), JUG_W * 3 // 5, JUG_H // 4))
 color_piel = (235, 190, 150)
 
 # --- ARMA EN LA MANO DEL JUGADOR ---
@@ -179,14 +188,14 @@ def crear_arma_procedural():
     return s
 
 try:
-    img_arma = pygame.transform.smoothscale(pygame.image.load("arma_jugador.png").convert_alpha(), (36, 16))
+    img_arma = pygame.transform.smoothscale(pygame.image.load("arma_jugador.png").convert_alpha(), (esc(36), esc(16)))
 except Exception:
-    img_arma = crear_arma_procedural()
+    img_arma = pygame.transform.scale(crear_arma_procedural(), (esc(34), esc(14)))
 
 ARMA_W, ARMA_H = img_arma.get_size()
-ARMA_PIVOTE = (8, ARMA_H // 2)
+ARMA_PIVOTE = (esc(8), ARMA_H // 2)
 ARMA_LARGO = ARMA_W - ARMA_PIVOTE[0]
-ARMA_DIST_MANO = 10
+ARMA_DIST_MANO = esc(10)
 
 # --- ESTADOS DEL JUEGO ---
 ESTADO_PORTADA = 0
@@ -202,12 +211,12 @@ juego_pausado = False
 nivel_actual = 1
 max_niveles = 3
 
-SUELO_Y = 500
+SUELO_Y = PIES_Y - JUG_H   # Altura (parte superior) del jugador al estar de pie
 jugador_x = 100
 jugador_y = SUELO_Y
 jugador_vy = 0
-gravedad = 0.8
-fuerza_salto = -14
+gravedad = 0.85
+fuerza_salto = -16.5   # Salto proporcional al nuevo tamaño
 en_suelo = True
 
 camara_x = 0
@@ -238,7 +247,7 @@ mensaje_timer = 0
 
 # Variables del Jefe Final
 boss_x = 0
-boss_y = SUELO_Y + 50 - BOSS_H
+boss_y = PIES_Y - BOSS_H
 boss_vida = 200
 boss_vida_max = 200
 boss_cooldown = 0
@@ -253,7 +262,7 @@ balas_enemigas = []
 items_arma = []
 particulas = []
 longitud_mapa = 6000
-refugio_x = longitud_mapa - 350
+refugio_x = longitud_mapa - REFUGIO_W - 10
 
 overlay_dano = pygame.Surface((ANCHO, ALTO))
 overlay_dano.fill((255, 0, 0))
@@ -340,6 +349,17 @@ def enemigo_centro(e):
     else:
         flote = math.sin(tiempo * 0.05 + e['x'] * 0.01) * 4
         return e['x'] + img_enemigo_aire.get_width() / 2, e['y'] + img_enemigo_aire.get_height() / 2 + flote
+
+def bala_toca_jugador(b):
+    """Impacto contra el cuerpo del jugador (caja ajustada a su tamaño)."""
+    return (jugador_x + JUG_W * 0.15 - 5 <= b['x'] <= jugador_x + JUG_W * 0.85 + 5 and
+            jugador_y + 2 <= b['y'] <= jugador_y + JUG_H + 5)
+
+def punto_toca_enemigo(px, py, e):
+    """Impacto de una bala (px, py) contra un enemigo, según el tamaño de su sprite."""
+    ex, ey = enemigo_centro(e)
+    img = img_alien if e['tipo'] == 'caminante' else img_enemigo_aire
+    return abs(px - ex) <= img.get_width() * 0.45 + 5 and abs(py - ey) <= img.get_height() * 0.5 + 5
 
 def herir_jugador(dano):
     global vida_jugador, escudo_jugador, flash_dano
@@ -462,10 +482,10 @@ def dibujar_jugador():
     pies_y = jugador_y + JUG_H
 
     altura = max(0, SUELO_Y - jugador_y)
-    w_sombra = max(14, int(36 - altura * 0.12))
-    sombra = pygame.Surface((w_sombra, 10), pygame.SRCALPHA)
+    w_sombra = max(esc(14), int((36 - altura * 0.12) * ESCALA))
+    sombra = pygame.Surface((w_sombra, esc(10)), pygame.SRCALPHA)
     pygame.draw.ellipse(sombra, (0, 0, 0, 90), sombra.get_rect())
-    pantalla.blit(sombra, (pies_x - w_sombra / 2, SUELO_Y + JUG_H - 6))
+    pantalla.blit(sombra, (pies_x - w_sombra / 2, PIES_Y - esc(6)))
 
     if not en_suelo:
         frame = frame_salto
@@ -497,22 +517,22 @@ def dibujar_arma():
     hombro, direc, ang = estado_apuntado()
     mano = hombro + direc * (ARMA_DIST_MANO - retroceso)
 
-    pygame.draw.line(pantalla, color_brazo, hombro, mano, 5)
-    pygame.draw.circle(pantalla, color_brazo, (int(hombro.x), int(hombro.y)), 3)
+    pygame.draw.line(pantalla, color_brazo, hombro, mano, esc(5))
+    pygame.draw.circle(pantalla, color_brazo, (int(hombro.x), int(hombro.y)), esc(3))
 
     arma = img_arma
     if direc.x < 0:
         arma = pygame.transform.flip(img_arma, False, True)
     rotada, rect = rotar_pivote(arma, ang, ARMA_PIVOTE, mano)
     pantalla.blit(rotada, rect)
-    pygame.draw.circle(pantalla, color_piel, (int(mano.x), int(mano.y)), 3)
+    pygame.draw.circle(pantalla, color_piel, (int(mano.x), int(mano.y)), esc(3))
 
     if flash_timer > 0:
         punta = mano + direc * ARMA_LARGO
         perp = Vec(-direc.y, direc.x)
-        largo = random.uniform(12, 20)
-        pygame.draw.polygon(pantalla, (255, 210, 80), [punta + perp * 5, punta + direc * largo, punta - perp * 5])
-        pygame.draw.polygon(pantalla, (255, 255, 230), [punta + perp * 2.5, punta + direc * (largo * 0.6), punta - perp * 2.5])
+        largo = random.uniform(esc(12), esc(20))
+        pygame.draw.polygon(pantalla, (255, 210, 80), [punta + perp * esc(5), punta + direc * largo, punta - perp * esc(5)])
+        pygame.draw.polygon(pantalla, (255, 255, 230), [punta + perp * esc(2.5), punta + direc * (largo * 0.6), punta - perp * esc(2.5)])
 
 def dibujar_mira():
     mx, my = pygame.mouse.get_pos()
@@ -529,15 +549,19 @@ def dibujar_mira():
 # =====================================================================
 #   NIVELES Y RECONFIGURACIÓN DE ENEMIGOS
 # =====================================================================
+# Variables para guardar el estado al iniciar el nivel (para poder repetir el mismo nivel al morir)
 checkpoint_vida = 100
 checkpoint_escudo = 0
 
 def restaurar_salud_checkpoint():
+    """Devuelve la vida y el escudo que tenías al ENTRAR al nivel (o a la pelea final) donde moriste."""
     global vida_jugador, escudo_jugador
     vida_jugador = checkpoint_vida
     escudo_jugador = checkpoint_escudo
 
 def iniciar_nivel(nivel, conservar_salud=False):
+    """Configura el mapa, dificultad y los enemigos según el nivel. 
+       Si conservar_salud es True, mantiene la vida y escudo actuales."""
     global nivel_actual, longitud_mapa, refugio_x, fondo_actual, juego_pausado
     global checkpoint_vida, checkpoint_escudo
     global vida_jugador, escudo_jugador, municion_balas
@@ -550,12 +574,13 @@ def iniciar_nivel(nivel, conservar_salud=False):
 
     fondo_actual = fondos_niveles[nivel_actual - 1]
     longitud_mapa = 5500 + (nivel * 1500)
-    refugio_x = longitud_mapa - 350
+    refugio_x = longitud_mapa - REFUGIO_W - 10
 
     if not conservar_salud:
         vida_jugador = 100
         escudo_jugador = 0
 
+    # Guardamos el estado actual como checkpoint de este nivel
     checkpoint_vida = vida_jugador
     checkpoint_escudo = escudo_jugador
 
@@ -572,6 +597,7 @@ def iniciar_nivel(nivel, conservar_salud=False):
     enemigos.clear()
     items_arma.clear()
 
+    # --- CONFIGURACIÓN DE ENEMIGOS SEGÚN NIVEL ---
     if nivel == 1:
         cant_aliens = 20
         distribucion = (refugio_x - 500) / cant_aliens
@@ -580,7 +606,7 @@ def iniciar_nivel(nivel, conservar_salud=False):
             enemigos.append({
                 'tipo': 'caminante',
                 'x': pos_x,
-                'y': SUELO_Y,
+                'y': PIES_Y - img_alien.get_height(),
                 'vx': -2.0,
                 'cooldown': random.randint(0, 60)
             })
@@ -593,7 +619,7 @@ def iniciar_nivel(nivel, conservar_salud=False):
             enemigos.append({
                 'tipo': 'aereo',
                 'x': pos_x,
-                'y': random.randint(30, 95),
+                'y': random.randint(60, 150),
                 'cooldown': random.randint(0, 60)
             })
 
@@ -605,7 +631,7 @@ def iniciar_nivel(nivel, conservar_salud=False):
             enemigos.append({
                 'tipo': 'aereo',
                 'x': pos_x,
-                'y': random.randint(30, 95),
+                'y': random.randint(60, 150),
                 'cooldown': random.randint(0, 60)
             })
 
@@ -616,18 +642,18 @@ def iniciar_nivel(nivel, conservar_salud=False):
             enemigos.append({
                 'tipo': 'caminante',
                 'x': pos_x,
-                'y': SUELO_Y,
+                'y': PIES_Y - img_alien.get_height(),
                 'vx': -2.5,
                 'cooldown': random.randint(0, 60)
             })
 
     if not tiene_arma:
-        items_arma.append({'x': 330, 'y': SUELO_Y + 15, 'activo': True})
+        items_arma.append({'x': 330, 'y': PIES_Y - ITEM_S - 8, 'activo': True})
 
     for _ in range(6):
         items_arma.append({
             'x': random.randint(600, refugio_x - 400),
-            'y': SUELO_Y + 15,
+            'y': PIES_Y - ITEM_S - 8,
             'activo': True
         })
 
@@ -639,6 +665,7 @@ def iniciar_boss_final():
     estado_actual = ESTADO_BOSS
     juego_pausado = False
     
+    # Guardamos checkpoint al entrar al Boss (por si muere en la pelea y da clic en repetir)
     checkpoint_vida = vida_jugador
     checkpoint_escudo = escudo_jugador
 
@@ -651,7 +678,7 @@ def iniciar_boss_final():
     en_suelo = True
     camara_x = 0
     boss_x = 640
-    boss_y = SUELO_Y + 50 - BOSS_H
+    boss_y = PIES_Y - BOSS_H
     boss_cooldown = 0
     flash_dano = 0
     jugador_derrotado = False
@@ -678,12 +705,14 @@ def dibujar_portada():
     return rect_boton
 
 def dibujar_hud():
+    # Barra de vida del jugador (Roja)
     pygame.draw.rect(pantalla, (100, 0, 0), (20, 15, 180, 16))
     pygame.draw.rect(pantalla, (0, 255, 0), (20, 15, max(0, int(vida_jugador * 1.8)), 16))
     pygame.draw.rect(pantalla, (255, 255, 255), (20, 15, 180, 16), 2)
     txt_vida = fuente_ui.render(f"HP: {max(0, vida_jugador)}/100", True, (255, 255, 255))
     pantalla.blit(txt_vida, (210, 12))
 
+    # Barra de Escudo del jugador (Azul)
     pygame.draw.rect(pantalla, (0, 50, 100), (20, 36, 180, 16))
     pygame.draw.rect(pantalla, (0, 180, 255), (20, 36, max(0, int(escudo_jugador * 1.8)), 16))
     pygame.draw.rect(pantalla, (255, 255, 255), (20, 36, 180, 16), 2)
@@ -810,9 +839,10 @@ while ejecutando:
             if evento.type == pygame.MOUSEBUTTONDOWN and evento.button == 1:
                 rect_repetir, rect_menu = botones_derrota()
                 if rect_repetir.collidepoint(evento.pos):
+                    # Repite el nivel (o la pelea final) donde moriste, con la vida/escudo con que entraste
                     restaurar_salud_checkpoint()
                     if muerte_en_boss:
-                        iniciar_boss_final()
+                        iniciar_boss_final()                         # Pone estado BOSS y su música
                     else:
                         iniciar_nivel(nivel_actual, conservar_salud=True)
                         estado_actual = ESTADO_JUGANDO
@@ -836,7 +866,7 @@ while ejecutando:
             corre = teclas[pygame.K_LSHIFT] or teclas[pygame.K_RSHIFT]
             velocidad = velocidad_run if corre else velocidad_base
 
-            dx = mover_jugador(velocidad, 0, longitud_mapa - 40)
+            dx = mover_jugador(velocidad, 0, longitud_mapa - JUG_W)
             aplicar_fisica_salto()
 
             camara_x = jugador_x - 250
@@ -860,8 +890,8 @@ while ejecutando:
                     if e['cooldown'] >= cadencia_enemigo:
                         e['cooldown'] = 0
                         ex, ey = enemigo_centro(e)
-                        dx_e = (jugador_x + 20) - ex
-                        dy_e = jugador_y - ey
+                        dx_e = (jugador_x + JUG_W / 2) - ex
+                        dy_e = (jugador_y + JUG_H * 0.2) - ey
                         dist = max(1, math.hypot(dx_e, dy_e))
                         vx_e = (dx_e / dist) * vel_bala_enemiga
                         vy_e = (dy_e / dist) * vel_bala_enemiga
@@ -876,7 +906,7 @@ while ejecutando:
             for b in balas_enemigas[:]:
                 b['x'] += b['vx']
                 b['y'] += b['vy']
-                if math.hypot(b['x'] - (jugador_x + 20), b['y'] - (jugador_y + 25)) < 25:
+                if bala_toca_jugador(b):
                     herir_jugador(10)
                     balas_enemigas.remove(b)
                     if vida_jugador <= 0:
@@ -896,9 +926,10 @@ while ejecutando:
 
                 for e in enemigos[:]:
                     ex, ey = enemigo_centro(e)
-                    if math.hypot(bj['x'] - ex, bj['y'] - ey) < 30:
+                    if punto_toca_enemigo(bj['x'], bj['y'], e):
                         enemigos.remove(e)
                         
+                        # --- RECOMPENSA POR KILL (+10 Vida y +10 Escudo, máx 100) ---
                         vida_jugador = min(100, vida_jugador + 10)
                         escudo_jugador = min(escudo_max, escudo_jugador + 10)
                         crear_particulas(ex, ey, 10, (0, 255, 120), vel=3.0, vida=20, radio=3, grav=0)
@@ -914,11 +945,11 @@ while ejecutando:
 
             for item in items_arma:
                 if item['activo']:
-                    if math.hypot((jugador_x + 20) - (item['x'] + 15), (jugador_y + 25) - (item['y'] + 15)) < 40:
+                    if math.hypot((jugador_x + JUG_W / 2) - (item['x'] + ITEM_S / 2), (jugador_y + JUG_H / 2) - (item['y'] + ITEM_S / 2)) < ITEM_S + JUG_W / 2:
                         item['activo'] = False
                         if sonido_recarga:
                             sonido_recarga.play()
-                        crear_particulas(item['x'] + 15, item['y'] + 15, 16, (0, 255, 120), vel=3.5, vida=25, radio=3, grav=0)
+                        crear_particulas(item['x'] + ITEM_S / 2, item['y'] + ITEM_S / 2, 16, (0, 255, 120), vel=3.5, vida=25, radio=3, grav=0)
                         if not tiene_arma:
                             tiene_arma = True
                             municion_balas += 10
@@ -929,25 +960,27 @@ while ejecutando:
 
             if jugador_x >= refugio_x:
                 if nivel_actual < max_niveles:
+                    # Al pasar de nivel, conservamos la vida y escudo actuales
                     iniciar_nivel(nivel_actual + 1, conservar_salud=True)
                 else:
                     iniciar_boss_final()
 
         # Renderizado Nivel
         pantalla.blit(fondo_actual, (0, 0))
-        pantalla.blit(img_refugio, (refugio_x - camara_x, SUELO_Y - 130))
+        pantalla.blit(img_refugio, (refugio_x - camara_x, PIES_Y - REFUGIO_H))
 
         for item in items_arma:
             if item['activo']:
                 flote = math.sin(tiempo * 0.08 + item['x'] * 0.01) * 3
-                cx = item['x'] - camara_x + 15
-                cy = item['y'] + 15 + flote
-                if -40 < cx < ANCHO + 40:
-                    radio = int(22 + math.sin(tiempo * 0.1) * 3)
-                    halo = pygame.Surface((60, 60), pygame.SRCALPHA)
-                    pygame.draw.circle(halo, (0, 255, 120, 55), (30, 30), radio)
-                    pantalla.blit(halo, (cx - 30, cy - 30))
-                    pantalla.blit(img_item_arma, (cx - 15, cy - 15))
+                cx = item['x'] - camara_x + ITEM_S / 2
+                cy = item['y'] + ITEM_S / 2 + flote
+                if -60 < cx < ANCHO + 60:
+                    radio = int(ITEM_S * 0.7 + math.sin(tiempo * 0.1) * 3)
+                    lado_halo = ITEM_S * 2
+                    halo = pygame.Surface((lado_halo, lado_halo), pygame.SRCALPHA)
+                    pygame.draw.circle(halo, (0, 255, 120, 55), (ITEM_S, ITEM_S), radio)
+                    pantalla.blit(halo, (cx - ITEM_S, cy - ITEM_S))
+                    pantalla.blit(img_item_arma, (cx - ITEM_S / 2, cy - ITEM_S / 2))
 
         for e in enemigos:
             ex, ey = enemigo_centro(e)
@@ -992,8 +1025,8 @@ while ejecutando:
             boss_cooldown += 1
             if boss_cooldown >= 30:
                 boss_cooldown = 0
-                dx_b = (jugador_x + 20) - boss_cx
-                dy_b = jugador_y - boss_cy
+                dx_b = (jugador_x + JUG_W / 2) - boss_cx
+                dy_b = (jugador_y + JUG_H * 0.2) - boss_cy
                 dist = max(1, math.hypot(dx_b, dy_b))
                 vx_b, vy_b = (dx_b / dist) * 7, (dy_b / dist) * 7
                 balas_enemigas.append({
@@ -1006,7 +1039,7 @@ while ejecutando:
             for b in balas_enemigas[:]:
                 b['x'] += b['vx']
                 b['y'] += b['vy']
-                if math.hypot(b['x'] - (jugador_x + 20), b['y'] - (jugador_y + 25)) < 25:
+                if bala_toca_jugador(b):
                     herir_jugador(15)
                     balas_enemigas.remove(b)
                     if vida_jugador <= 0:
@@ -1022,6 +1055,7 @@ while ejecutando:
 
                 if hitbox_boss.collidepoint(bj['x'], bj['y']):
                     boss_vida -= 10
+                    # Recompensa por impacto al Boss (+10 Vida y +10 Escudo)
                     vida_jugador = min(100, vida_jugador + 10)
                     escudo_jugador = min(escudo_max, escudo_jugador + 10)
                     crear_particulas(bj['x'], bj['y'], 8, (255, 90, 60), vel=3.5, vida=20, radio=3)
