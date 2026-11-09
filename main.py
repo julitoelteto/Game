@@ -11,6 +11,14 @@ mixer.init()
 ANCHO, ALTO = 800, 600
 pantalla = pygame.display.set_mode((ANCHO, ALTO))
 pygame.display.set_caption("Fast Run - El Refugio Final")
+
+# --- CARGA DEL ICONO DE LA VENTANA ---
+try:
+    icono_juego = pygame.image.load("icono.png")
+    pygame.display.set_icon(icono_juego)
+except Exception as e:
+    print(f"⚠️ AVISO: No se pudo cargar el ícono 'icono.png'. Detalle: {e}")
+
 reloj = pygame.time.Clock()
 Vec = pygame.math.Vector2
 
@@ -521,19 +529,15 @@ def dibujar_mira():
 # =====================================================================
 #   NIVELES Y RECONFIGURACIÓN DE ENEMIGOS
 # =====================================================================
-# Variables para guardar el estado al iniciar el nivel (para poder repetir el mismo nivel al morir)
 checkpoint_vida = 100
 checkpoint_escudo = 0
 
 def restaurar_salud_checkpoint():
-    """Devuelve la vida y el escudo que tenías al ENTRAR al nivel (o a la pelea final) donde moriste."""
     global vida_jugador, escudo_jugador
     vida_jugador = checkpoint_vida
     escudo_jugador = checkpoint_escudo
 
 def iniciar_nivel(nivel, conservar_salud=False):
-    """Configura el mapa, dificultad y los enemigos según el nivel. 
-       Si conservar_salud es True, mantiene la vida y escudo actuales."""
     global nivel_actual, longitud_mapa, refugio_x, fondo_actual, juego_pausado
     global checkpoint_vida, checkpoint_escudo
     global vida_jugador, escudo_jugador, municion_balas
@@ -552,7 +556,6 @@ def iniciar_nivel(nivel, conservar_salud=False):
         vida_jugador = 100
         escudo_jugador = 0
 
-    # Guardamos el estado actual como checkpoint de este nivel
     checkpoint_vida = vida_jugador
     checkpoint_escudo = escudo_jugador
 
@@ -569,7 +572,6 @@ def iniciar_nivel(nivel, conservar_salud=False):
     enemigos.clear()
     items_arma.clear()
 
-    # --- CONFIGURACIÓN DE ENEMIGOS SEGÚN NIVEL ---
     if nivel == 1:
         cant_aliens = 20
         distribucion = (refugio_x - 500) / cant_aliens
@@ -637,7 +639,6 @@ def iniciar_boss_final():
     estado_actual = ESTADO_BOSS
     juego_pausado = False
     
-    # Guardamos checkpoint al entrar al Boss (por si muere en la pelea y da clic en repetir)
     checkpoint_vida = vida_jugador
     checkpoint_escudo = escudo_jugador
 
@@ -677,14 +678,12 @@ def dibujar_portada():
     return rect_boton
 
 def dibujar_hud():
-    # Barra de vida del jugador (Roja)
     pygame.draw.rect(pantalla, (100, 0, 0), (20, 15, 180, 16))
     pygame.draw.rect(pantalla, (0, 255, 0), (20, 15, max(0, int(vida_jugador * 1.8)), 16))
     pygame.draw.rect(pantalla, (255, 255, 255), (20, 15, 180, 16), 2)
     txt_vida = fuente_ui.render(f"HP: {max(0, vida_jugador)}/100", True, (255, 255, 255))
     pantalla.blit(txt_vida, (210, 12))
 
-    # Barra de Escudo del jugador (Azul)
     pygame.draw.rect(pantalla, (0, 50, 100), (20, 36, 180, 16))
     pygame.draw.rect(pantalla, (0, 180, 255), (20, 36, max(0, int(escudo_jugador * 1.8)), 16))
     pygame.draw.rect(pantalla, (255, 255, 255), (20, 36, 180, 16), 2)
@@ -811,10 +810,9 @@ while ejecutando:
             if evento.type == pygame.MOUSEBUTTONDOWN and evento.button == 1:
                 rect_repetir, rect_menu = botones_derrota()
                 if rect_repetir.collidepoint(evento.pos):
-                    # Repite el nivel (o la pelea final) donde moriste, con la vida/escudo con que entraste
                     restaurar_salud_checkpoint()
                     if muerte_en_boss:
-                        iniciar_boss_final()                         # Pone estado BOSS y su música
+                        iniciar_boss_final()
                     else:
                         iniciar_nivel(nivel_actual, conservar_salud=True)
                         estado_actual = ESTADO_JUGANDO
@@ -901,7 +899,6 @@ while ejecutando:
                     if math.hypot(bj['x'] - ex, bj['y'] - ey) < 30:
                         enemigos.remove(e)
                         
-                        # --- RECOMPENSA POR KILL (+10 Vida y +10 Escudo, máx 100) ---
                         vida_jugador = min(100, vida_jugador + 10)
                         escudo_jugador = min(escudo_max, escudo_jugador + 10)
                         crear_particulas(ex, ey, 10, (0, 255, 120), vel=3.0, vida=20, radio=3, grav=0)
@@ -932,7 +929,6 @@ while ejecutando:
 
             if jugador_x >= refugio_x:
                 if nivel_actual < max_niveles:
-                    # Al pasar de nivel, conservamos la vida y escudo actuales
                     iniciar_nivel(nivel_actual + 1, conservar_salud=True)
                 else:
                     iniciar_boss_final()
@@ -1026,7 +1022,6 @@ while ejecutando:
 
                 if hitbox_boss.collidepoint(bj['x'], bj['y']):
                     boss_vida -= 10
-                    # Recompensa por impacto al Boss (+10 Vida y +10 Escudo)
                     vida_jugador = min(100, vida_jugador + 10)
                     escudo_jugador = min(escudo_max, escudo_jugador + 10)
                     crear_particulas(bj['x'], bj['y'], 8, (255, 90, 60), vel=3.5, vida=20, radio=3)
